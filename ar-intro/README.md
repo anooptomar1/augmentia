@@ -226,3 +226,7 @@ func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor:
 ```
 
 The app should now be detecting and visualizing planes.
+
+## Adding Geometry and Physics
+
+Now that we've started to detect horizontal surfaces

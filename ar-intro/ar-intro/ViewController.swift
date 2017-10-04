@@ -10,7 +10,7 @@ import UIKit
 import ARKit
 import SceneKit
 
-class ViewController: UIViewController, ARSCNViewDelegate, SCNSceneRendererDelegate {
+class ViewController: UIViewController, ARSCNViewDelegate, SCNSceneRendererDelegate, UIGestureRecognizerDelegate, SCNPhysicsContactDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
@@ -66,6 +66,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNSceneRendererDeleg
         // Set the scene to the view
         self.sceneView.scene = scene
         sceneView.isPlaying = true
+        
+        let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTapFrom))
+        tapGestureRecognizer.numberOfTapsRequired = 1
+        self.sceneView.addGestureRecognizer(tapGestureRecognizer)
     }
     
     func setupSession() {
@@ -105,11 +109,43 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNSceneRendererDeleg
         }
     }
     
+    @objc func handleTapFrom(recognizer: UITapGestureRecognizer) {
+        let tapPoint = recognizer.location(in: self.sceneView)
+        let result = self.sceneView.hitTest(tapPoint, types: ARHitTestResult.ResultType.existingPlaneUsingExtent)
+        
+        if result.count == 0 { return }
+        
+        let first = result.first
+        insertGeometry(hitResult: first!)
+    }
+    
     func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
         if let _ = planes[anchor.identifier] {
             // Nodes will be removed if multiple planes that are detected to all be part of a larger plane are merged
             planes.remove(at: planes.index(forKey: anchor.identifier)!)
         }
+    }
+    
+    func insertGeometry(hitResult: ARHitTestResult) {
+        print(hitResult)
+        
+        let dimension = CGFloat(0.1)
+        let cube = SCNBox(width: dimension, height: dimension, length: dimension, chamferRadius: 0)
+        let node = SCNNode(geometry: cube)
+        
+        // The physicsBody tells SceneKit this geometry should be manipulated by the physics engine
+        node.physicsBody = SCNPhysicsBody(type: SCNPhysicsBodyType.dynamic, shape: nil)
+        node.physicsBody?.mass = 2.0
+        node.physicsBody?.categoryBitMask = 1 << 1
+        
+        let insertionYOffset = Float(0.5)
+        node.position = SCNVector3Make(
+            hitResult.worldTransform.columns.3.x,
+            hitResult.worldTransform.columns.3.y + insertionYOffset,
+            hitResult.worldTransform.columns.3.z
+        )
+        
+        self.sceneView.scene.rootNode.addChildNode(node)
     }
     
     func session(_ session: ARSession, didFailWithError error: Error) {
