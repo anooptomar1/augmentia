@@ -1,3 +1,3 @@
 # Augmentia
 
-Explorations in using ARKit amongs other things.
+Explorations with ARKit amongst other things.
